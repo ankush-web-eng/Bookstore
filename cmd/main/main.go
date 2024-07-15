@@ -16,11 +16,7 @@ func init() {
 	routes.RegisterBookstoreRoutes(router)
 }
 
-func Handler(w http.ResponseWriter, r *http.Request) {
-	router.ServeHTTP(w, r)
-}
-
 func main() {
-	fmt.Println("Server started at localhost:9010")
-	log.Fatal(http.ListenAndServe("localhost:9010", router))
+	fmt.Println("Server started at 0.0.0.0:9010")
+	log.Fatal(http.ListenAndServe("0.0.0.0:9010", nil))
 }

@@ -1,11 +1,10 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/ankush-web-eng/Bookstore/pkg/config"
 	"github.com/ankush-web-eng/Bookstore/pkg/models"
 	"github.com/ankush-web-eng/Bookstore/pkg/utils"
 	"github.com/gorilla/mux"
@@ -15,71 +14,78 @@ import (
 
 func GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	books := models.GetAllBooks()
-	res, _ := json.Marshal(books)
-	w.Header().Set("Content-Type", "pkglication/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	utils.JsonResponse(w, http.StatusOK, books)
 }
 
 func GetBookById(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	bookdId := params["bookId"]
-	ID, err := strconv.ParseInt(bookdId, 0, 0)
+	bookId := params["bookId"]
+	ID, err := strconv.ParseInt(bookId, 10, 64)
 	if err != nil {
-		fmt.Println("Error while parsing Id")
+		http.Error(w, "Invalid book ID", http.StatusBadRequest)
+		return
 	}
-	bookDetails, _ := models.GetBookById(ID)
-	res, _ := json.Marshal(bookDetails)
-	w.Header().Set("Content-Type", "pkglication/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+
+	bookDetails, err := models.GetBookById(ID)
+	if err != nil {
+		http.Error(w, "Book not found", http.StatusNotFound)
+		return
+	}
+
+	utils.JsonResponse(w, http.StatusOK, bookDetails)
 }
 
 func CreateBook(w http.ResponseWriter, r *http.Request) {
-	Createbook := &models.Book{}
-	utils.ParseBody(r, Createbook)
-	b := Createbook.CreateBook()
-	res, _ := json.Marshal(b)
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	newBook := &models.Book{}
+	utils.ParseBody(r, newBook)
+	createdBook := newBook.CreateBook()
+	utils.JsonResponse(w, http.StatusCreated, createdBook)
 }
 
 func DeleteBook(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	bookdId := params["bookId"]
-	ID, err := strconv.ParseInt(bookdId, 0, 0)
+	bookId := params["bookId"]
+	ID, err := strconv.ParseInt(bookId, 10, 64)
 	if err != nil {
-		fmt.Println("Error while parsing Id")
+		http.Error(w, "Invalid book ID", http.StatusBadRequest)
+		return
 	}
-	book := models.DeleteBook(ID)
-	res, _ := json.Marshal(book)
-	w.Header().Set("Content-Type", "pkglication/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+
+	deletedBook := models.DeleteBook(ID)
+	utils.JsonResponse(w, http.StatusOK, deletedBook)
 }
 
 func UpdateBook(w http.ResponseWriter, r *http.Request) {
-	UpdateBook := &models.Book{}
-	utils.ParseBody(r, UpdateBook)
+	updatedBook := &models.Book{}
+	utils.ParseBody(r, updatedBook)
 	params := mux.Vars(r)
-	bookdId := params["bookId"]
-	ID, err := strconv.ParseInt(bookdId, 0, 0)
+	bookId := params["bookId"]
+	ID, err := strconv.ParseInt(bookId, 10, 64)
 	if err != nil {
-		fmt.Println("Error while parsing Id")
+		http.Error(w, "Invalid book ID", http.StatusBadRequest)
+		return
 	}
-	bookDetails, db := models.GetBookById(ID)
-	if UpdateBook.Name != "" {
-		bookDetails.Name = UpdateBook.Name
+
+	bookDetails, err := models.GetBookById(ID)
+	if err != nil {
+		http.Error(w, "Book not found", http.StatusNotFound)
+		return
 	}
-	if UpdateBook.Author != "" {
-		bookDetails.Author = UpdateBook.Author
+
+	// Update bookDetails with updatedBook fields
+	if updatedBook.Name != "" {
+		bookDetails.Name = updatedBook.Name
 	}
-	if UpdateBook.Publication != "" {
-		bookDetails.Publication = UpdateBook.Publication
+	if updatedBook.Author != "" {
+		bookDetails.Author = updatedBook.Author
 	}
+	if updatedBook.Publication != "" {
+		bookDetails.Publication = updatedBook.Publication
+	}
+
+	db := config.GetDB()
 	db.Save(&bookDetails)
-	res, _ := json.Marshal(bookDetails)
-	w.Header().Set("Content-Type", "pkglication/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+
+	// Return updated bookDetails as JSON response
+	utils.JsonResponse(w, http.StatusOK, bookDetails)
 }

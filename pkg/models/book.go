@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/ankush-web-eng/Bookstore/pkg/config"
 	"github.com/jinzhu/gorm"
 )
@@ -32,10 +34,16 @@ func GetAllBooks() []Book {
 	return books
 }
 
-func GetBookById(Id int64) (*Book, *gorm.DB) {
+func GetBookById(Id int64) (*Book, error) {
 	var book Book
-	db := db.Where("ID = ?", Id).Find(&book)
-	return &book, db
+	db := db.Where("ID = ?", Id).First(&book)
+	if db.RecordNotFound() {
+		return nil, fmt.Errorf("Book not found")
+	}
+	if db.Error != nil {
+		return nil, db.Error
+	}
+	return &book, nil
 }
 
 func DeleteBook(ID int64) *Book {
